@@ -295,6 +295,25 @@ static __device__ __forceinline__ int ggml_cuda_dp4a(const int a, const int b, i
         : "+v"(c), "=&v"(tmp1), "=&v"(tmp2)
         : "v"(a), "v"(b)
     );
+#elif defined(__gfx803__)
+    int tmp1;
+    int tmp2;
+    asm("\n \
+        v_mul_i32_i24 %0, sext(%2), sext(%3) dst_sel:DWORD dst_unused:UNUSED_PAD src0_sel:BYTE_0 src1_sel:BYTE_0 \n \
+        v_mul_i32_i24 %1, sext(%2), sext(%3) dst_sel:DWORD dst_unused:UNUSED_PAD src0_sel:BYTE_1 src1_sel:BYTE_1 \n \
+        "
+        : "=&v"(tmp1), "=v"(tmp2)
+        : "v"(a), "v"(b)
+    );
+    c += tmp1 + tmp2;
+    asm("\n \
+        v_mul_i32_i24 %0, sext(%2), sext(%3) dst_sel:DWORD dst_unused:UNUSED_PAD src0_sel:BYTE_2 src1_sel:BYTE_2 \n \
+        v_mul_i32_i24 %1, sext(%2), sext(%3) dst_sel:DWORD dst_unused:UNUSED_PAD src0_sel:BYTE_3 src1_sel:BYTE_3 \n \
+        "
+        : "=&v"(tmp1), "=v"(tmp2)
+        : "v"(a), "v"(b)
+    );
+    c += tmp1 + tmp2;
 #else
     const int8x4_t va = reinterpret_cast<const int8x4_t&>(a);
     const int8x4_t vb = reinterpret_cast<const int8x4_t&>(b);
